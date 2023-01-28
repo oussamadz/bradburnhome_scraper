@@ -50,9 +50,9 @@ class ProductsSpider(scrapy.Spider):
             if "carton" in title.lower():
                 values = tr.xpath(".//td/text()").getall()[1]
                 boxes[title] = [
-                    re.findall('(\d*\.?\d*)(?=\s*"w)', values),
-                    re.findall('(\d*\.?\d*)(?=\s*"d)', values),
-                    re.findall('(\d*\.?\d*)(?=\s*"h)', values),
+                    re.findall('(\d*\.?\d*)(?=\s*"w)|$', values)[0],
+                    re.findall('(\d*\.?\d*)(?=\s*"d)|$', values)[0],
+                    re.findall('(\d*\.?\d*)(?=\s*"h)|$', values)[0],
                 ]
         return boxes
 
@@ -102,14 +102,14 @@ class ProductsSpider(scrapy.Spider):
         if response.xpath("//a[@class='product_collection']/@title") == "Floor Lamps":
             dimentions = self.convertTable(table, "Dimensions")
             product['attrib__arm_height'] = re.findall(
-                '(\d*\.?\d*)(?=\s*"h)', dimentions)
+                '(\d*\.?\d*)(?=\s*"h)|$', dimentions)[0]
         product['attrib__bulb_type'] = self.convertTable(
             table, 'Bulb Type & Wattage').split(",")[0]
         product['attrib__color'] = self.convertTable(table, "Color")
         product['attrib__designer'] = self.getDesigner(
             response.xpath("//h1[@class='product_name']/text()").get())
         product['attrib__finish'] = re.findall(
-            "(\w+)(?=\s*finish)", response.xpath("//div[@class='description']/p/text()").get(default=""))
+            "(\w+)(?=\s*finish)|$", response.xpath("//div[@class='description']/p/text()").get(default=""))[0]
         product['attrib__material'] = self.convertTable(table, "Material")
         try:
             product['attrib__number_bulbs'] = w2n.word_to_num(
@@ -128,9 +128,9 @@ class ProductsSpider(scrapy.Spider):
         product['cost_price'] = response.xpath(
             "//span[@class='current_price ']/*/text()").get().replace("$", "")
         product['height'] = re.findall(
-            '(\d*\.?\d*)(?=\s*"h)', self.convertTable(table, 'Dimensions'))
+            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, 'Dimensions'))[0]
         product['length'] = re.findall(
-            '(\d*\.?\d*)(?=\s*"h)', self.convertTable(table, 'Dimentions'))
+            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, 'Dimentions'))[0]
         stock = self.convertTable(table, "Stock Level")
         if stock != "":
             if "unavailable" in stock.lower():
@@ -160,5 +160,5 @@ class ProductsSpider(scrapy.Spider):
         boxes = self.findBoxes(table)
         product['shipment_boxes'] = boxes
         product['width'] = re.findall(
-            '(\d*\.?\d*)(?=\s*"h)', self.convertTable(table, "Dimentions"))
+            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, "Dimentions"))[0]
         yield product
