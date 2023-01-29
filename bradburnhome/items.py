@@ -4,6 +4,10 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 import scrapy
+from alexber.scrapyitem import GeneralItem
+
+class RawItem(GeneralItem):
+    pass
 
 
 class BradburnhomeItem(scrapy.Item):

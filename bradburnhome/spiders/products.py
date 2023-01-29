@@ -2,7 +2,7 @@ import scrapy
 import re
 import csv
 from word2number import w2n
-from ..items import BradburnhomeItem
+from ..items import RawItem
 import xml.etree.ElementTree as ET
 
 
@@ -12,6 +12,8 @@ class ProductsSpider(scrapy.Spider):
     start_urls = [
         "https://bradburnhome.com/sitemap.xml"
     ]
+
+    fields = [] #debug
 
     usedRows = [
         "Bulb Type & Wattage", "Cord", "Stock Level",
@@ -29,15 +31,23 @@ class ProductsSpider(scrapy.Spider):
                 continue
         return ""
 
+    #debug
+    def saveField(self, field):
+        if field not in self.fields:
+            self.fields.append(field)
+            with open("fiels.txt", 'a') as f:
+                f.write(field+"\n")
+
     def parseTable(self, table):
-        tableDict = {}
+        tableDict = RawItem()
         for tr in table.xpath(".//tr"):
             try:
                 key = tr.xpath(".//td/text()").getall()[0]
                 if key not in self.usedRows:
                     tableDict[key] = tr.xpath(".//td/text()").getall()[1]
+                    self.saveField(key) #debug
             except IndexError:
-                pass
+                continue
         return tableDict
 
     def findBoxes(self, table):
@@ -54,6 +64,8 @@ class ProductsSpider(scrapy.Spider):
                     re.findall('(\d*\.?\d*)(?=\s*"d)|$', values)[0],
                     re.findall('(\d*\.?\d*)(?=\s*"h)|$', values)[0],
                 ]
+        if boxes == {}:
+            return ""
         return boxes
 
     def getDesigner(self, title):
@@ -130,7 +142,7 @@ class ProductsSpider(scrapy.Spider):
         product['height'] = re.findall(
             '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, 'Dimensions'))[0]
         product['length'] = re.findall(
-            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, 'Dimentions'))[0]
+            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, 'Dimensions'))[0]
         stock = self.convertTable(table, "Stock Level")
         if stock != "":
             if "unavailable" in stock.lower():
@@ -150,8 +162,11 @@ class ProductsSpider(scrapy.Spider):
             table, "Made In")
         product['product__description'] = response.xpath(
             "//div[@class='description']/p/text()").get()
-        product['lifestyle_images'] = response.xpath(
-            "//a[@class='fancybox']/img/@src").get().split("?")[0].replace("//", "")
+        try:
+            product['lifestyle_images'] = response.xpath(
+                "//a[@class='fancybox']/img/@src").get().split("?")[0].replace("//", "")
+        except AttributeError:
+            product['lifestyle_images'] = ""
         product['product__sites'] = self.allowed_domains[0]
         product['product__title'] = response.xpath(
             "//h1[@class='product_name']/text()").get()
@@ -160,5 +175,6 @@ class ProductsSpider(scrapy.Spider):
         boxes = self.findBoxes(table)
         product['shipment_boxes'] = boxes
         product['width'] = re.findall(
-            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, "Dimentions"))[0]
+            '(\d*\.?\d*)(?=\s*"h)|$', self.convertTable(table, "Dimensions"))[0]
+
         yield product
