@@ -27,6 +27,8 @@ To run this project, you will need the following requirements installed:
 
 `word2number`
 
+`scrapy-item`
+
 
 ## Authors
 
